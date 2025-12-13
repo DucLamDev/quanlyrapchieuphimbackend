@@ -1,0 +1,124 @@
+{
+  "cinema_info": {
+    "keywords": ["rạp", "cinema", "địa chỉ", "ở đâu", "cơ sở", "chi nhánh"],
+    "responses": [
+      {
+        "question": "Hệ thống rạp có bao nhiêu cơ sở?",
+        "answer": "Chúng tôi hiện có hệ thống rạp chiếu phim trên toàn quốc với các cơ sở tại Hà Nội, TP.HCM, Đà Nẵng và các tỉnh thành khác. Mỗi rạp đều được trang bị công nghệ chiếu phim hiện đại nhất."
+      },
+      {
+        "question": "Địa chỉ rạp ở đâu?",
+        "answer": "Bạn có thể xem danh sách đầy đủ các rạp và địa chỉ cụ thể bằng cách click vào 'Xem tất cả rạp' hoặc cho tôi biết bạn đang ở khu vực nào để tìm rạp gần nhất."
+      }
+    ]
+  },
+  "booking": {
+    "keywords": ["đặt vé", "book", "mua vé", "đặt chỗ", "giữ chỗ"],
+    "responses": [
+      {
+        "question": "Làm thế nào để đặt vé?",
+        "answer": "Để đặt vé xem phim, bạn làm theo các bước:\n1. Chọn phim muốn xem\n2. Chọn rạp và suất chiếu\n3. Chọn ghế ngồi\n4. Thanh toán\nHoặc bạn có thể nói với tôi tên phim muốn xem, tôi sẽ giúp bạn!"
+      },
+      {
+        "question": "Có thể hủy vé sau khi đặt không?",
+        "answer": "Bạn có thể hủy vé trước suất chiếu 2 tiếng và được hoàn tiền 100%. Từ 2 tiếng trước suất chiếu sẽ không được hoàn tiền."
+      },
+      {
+        "question": "Thanh toán như thế nào?",
+        "answer": "Chúng tôi chấp nhận thanh toán qua:\n- VNPay\n- Thẻ tín dụng/ghi nợ (Visa, Mastercard)\n- Ví điện tử (MoMo, ZaloPay)\n- Thanh toán tại quầy"
+      }
+    ]
+  },
+  "movie_info": {
+    "keywords": ["phim", "movie", "phim gì", "xem gì", "chiếu gì"],
+    "responses": [
+      {
+        "question": "Hiện có phim gì đang chiếu?",
+        "answer": "Chúng tôi đang chiếu nhiều bộ phim hot như phim hành động, tình cảm, kinh dị... Bạn thích thể loại phim nào? Tôi sẽ gợi ý cho bạn những bộ phim phù hợp nhất!"
+      },
+      {
+        "question": "Phim nào đáng xem nhất?",
+        "answer": "Các bộ phim được đánh giá cao nhất hiện tại đều có rating trên 8/10. Bạn có thể xem danh sách phim đang chiếu với rating và đánh giá từ khán giả."
+      },
+      {
+        "question": "Phim mới ra rạp khi nào?",
+        "answer": "Chúng tôi cập nhật phim mới mỗi tuần. Bạn có thể xem mục 'Phim sắp chiếu' để biết lịch ra mắt các bộ phim sắp tới."
+      }
+    ]
+  },
+  "showtime": {
+    "keywords": ["suất chiếu", "lịch chiếu", "giờ chiếu", "showtime", "chiếu lúc"],
+    "responses": [
+      {
+        "question": "Xem lịch chiếu như thế nào?",
+        "answer": "Bạn có thể xem lịch chiếu bằng cách:\n1. Vào mục 'Lịch chiếu' trên website\n2. Chọn phim và rạp muốn xem\n3. Hệ thống sẽ hiển thị tất cả suất chiếu có sẵn\nHoặc bạn nói tên phim muốn xem, tôi sẽ giúp bạn tìm suất chiếu phù hợp!"
+      },
+      {
+        "question": "Suất chiếu đông nhất là khi nào?",
+        "answer": "Thông thường các suất chiếu đông nhất là:\n- Tối thứ 6, thứ 7, Chủ nhật (18h-21h)\n- Các ngày lễ, Tết\nĐể tránh đông đúc, bạn nên đặt vé trước hoặc chọn suất sáng/chiều."
+      }
+    ]
+  },
+  "price": {
+    "keywords": ["giá", "bao nhiêu", "price", "cost", "phí", "tiền"],
+    "responses": [
+      {
+        "question": "Giá vé bao nhiêu?",
+        "answer": "Giá vé tùy thuộc vào:\n- Loại ghế (Standard/VIP/Sweetbox)\n- Ngày chiếu (thường/cuối tuần)\n- Suất chiếu (sáng/chiều/tối)\nGiá dao động từ 45.000đ - 150.000đ. Vui lòng chọn phim và suất chiếu để xem giá chính xác."
+      },
+      {
+        "question": "Có giảm giá cho học sinh sinh viên không?",
+        "answer": "Có! Chúng tôi có chương trình giảm 20% cho học sinh, sinh viên khi xuất trình thẻ. Áp dụng từ thứ 2 đến thứ 5."
+      }
+    ]
+  },
+  "promotion": {
+    "keywords": ["khuyến mãi", "giảm giá", "promotion", "discount", "ưu đãi"],
+    "responses": [
+      {
+        "question": "Hiện có chương trình khuyến mãi gì?",
+        "answer": "Các chương trình khuyến mãi đang áp dụng:\n- Thứ 3 hàng tuần: Giảm 20% tất cả suất chiếu\n- Mua 2 vé tặng 1 combo bắp nước\n- Thành viên VIP: Giảm 15% mọi suất chiếu\n- Sinh nhật: Tặng 1 vé miễn phí\nClick 'Xem khuyến mãi' để biết chi tiết!"
+      },
+      {
+        "question": "Làm thẻ thành viên như thế nào?",
+        "answer": "Đăng ký thành viên hoàn toàn MIỄN PHÍ! Chỉ cần:\n1. Đăng ký tài khoản trên website\n2. Xác thực email\n3. Bạn đã là thành viên và nhận ngay ưu đãi 10% cho lần đặt vé đầu tiên!"
+      }
+    ]
+  },
+  "technical": {
+    "keywords": ["công nghệ", "màn hình", "âm thanh", "ghế", "phòng chiếu"],
+    "responses": [
+      {
+        "question": "Rạp có công nghệ gì?",
+        "answer": "Tất cả rạp của chúng tôi đều được trang bị:\n- Màn hình 4K với công nghệ Dolby Vision\n- Âm thanh vòm Dolby Atmos\n- Ghế massage tự động\n- Phòng chiếu IMAX (tại một số chi nhánh)\nMang đến trải nghiệm xem phim tuyệt vời nhất!"
+      }
+    ]
+  },
+  "food": {
+    "keywords": ["bắp", "nước", "đồ ăn", "combo", "thức ăn", "bỏng"],
+    "responses": [
+      {
+        "question": "Có bán đồ ăn gì?",
+        "answer": "Chúng tôi có đầy đủ:\n- Bắp rang bơ (nhiều size)\n- Nước ngọt các loại\n- Combo bắp + nước\n- Snack, kẹo\n- Hot dog, nachos\nBạn có thể đặt combo khi book vé online để được giảm giá!"
+      }
+    ]
+  },
+  "age_restriction": {
+    "keywords": ["độ tuổi", "age", "trẻ em", "18+", "13+", "giới hạn"],
+    "responses": [
+      {
+        "question": "Phim có giới hạn độ tuổi không?",
+        "answer": "Có! Mỗi phim có phân loại:\n- P: Phù hợp mọi lứa tuổi\n- C13: Dành cho từ 13 tuổi trở lên\n- C16: Dành cho từ 16 tuổi trở lên\n- C18: Chỉ dành cho 18 tuổi trở lên\nVui lòng kiểm tra phân loại trước khi đặt vé."
+      }
+    ]
+  },
+  "general": {
+    "keywords": ["xin chào", "hello", "hi", "hey", "chào"],
+    "responses": [
+      {
+        "question": "Chào hỏi",
+        "answer": "Xin chào! Tôi là AI Assistant của hệ thống rạp chiếu phim. Tôi có thể giúp bạn:\n- Đặt vé xem phim\n- Xem thông tin phim đang chiếu\n- Tìm suất chiếu phù hợp\n- Tìm rạp gần bạn\n- Xem khuyến mãi\nBạn cần giúp gì nhé?"
+      }
+    ]
+  }
+}
