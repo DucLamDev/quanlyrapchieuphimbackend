@@ -40,7 +40,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: 'https://quanlyrapchieuphim.vercel.app',
+    origin: 'https://quanlyrapchieuphim-r6mr.vercel.app',
     credentials: true
   }
 });
@@ -50,7 +50,7 @@ app.use(helmet()); // Security headers
 app.use(compression()); // Compress responses
 app.use(cors({
   // origin: 'https://quanlyrapchieuphim.vercel.app',
-  origin: 'http://localhost:3000',
+  origin: 'https://quanlyrapchieuphim-r6mr.vercel.app',
   credentials: true
 }));
 app.use(express.json());
