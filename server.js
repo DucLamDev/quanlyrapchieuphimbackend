@@ -41,7 +41,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: 'https://quanlyrapchieuphim-r6mr.vercel.app',
-    origin: 'http://localhost:3000',
+    // origin: 'http://localhost:3000',
     credentials: true
   }
 });
@@ -50,9 +50,9 @@ const io = new Server(httpServer, {
 app.use(helmet()); // Security headers
 app.use(compression()); // Compress responses
 app.use(cors({
-  origin: 'https://quanlyrapchieuphim.vercel.app',
+  // origin: 'https://quanlyrapchieuphim.vercel.app',
   origin: 'https://quanlyrapchieuphim-r6mr.vercel.app',
-  origin: 'http://localhost:3000',
+  // origin: 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
