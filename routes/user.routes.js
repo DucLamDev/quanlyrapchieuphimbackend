@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 import {
+  createUser,
   getAllUsers,
   getUser,
   updateUser,
@@ -16,6 +17,7 @@ router.get('/search', protect, authorize('staff', 'admin'), searchUser);
 // Admin-only routes
 router.use(protect, authorize('admin'));
 
+router.post('/', createUser);
 router.get('/', getAllUsers);
 router.get('/:id', getUser);
 router.put('/:id', updateUser);

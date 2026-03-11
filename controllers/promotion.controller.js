@@ -1,5 +1,6 @@
 import Promotion from '../models/Promotion.model.js';
 import Showtime from '../models/Showtime.model.js';
+import User from '../models/User.model.js';
 
 // @desc    Get all promotions
 // @route   GET /api/promotions
@@ -21,10 +22,33 @@ export const getPromotions = async (req, res, next) => {
       .populate('applicableFor.cinemas', 'name location')
       .sort('-createdAt');
 
+    // Transform data to match frontend expectations
+    const transformedPromotions = promotions.map(promo => ({
+      _id: promo._id,
+      code: promo.code,
+      name: promo.name,
+      description: promo.description || promo.name,
+      type: promo.type,
+      discountType: promo.type, // Frontend expects discountType
+      value: promo.value,
+      discountValue: promo.value, // Frontend expects discountValue
+      minPurchaseAmount: promo.minPurchaseAmount,
+      minOrderValue: promo.minPurchaseAmount, // Frontend expects minOrderValue
+      maxDiscountAmount: promo.maxDiscountAmount,
+      validFrom: promo.validFrom,
+      validUntil: promo.validUntil,
+      usageLimit: promo.usageLimit?.total,
+      totalUsed: promo.usageCount || 0, // Frontend expects totalUsed
+      isActive: promo.isActive,
+      applicableFor: promo.applicableFor,
+      createdAt: promo.createdAt,
+      updatedAt: promo.updatedAt
+    }));
+
     res.status(200).json({
       success: true,
-      count: promotions.length,
-      promotions
+      count: transformedPromotions.length,
+      data: transformedPromotions
     });
   } catch (error) {
     next(error);
@@ -63,6 +87,15 @@ export const createPromotion = async (req, res, next) => {
   try {
     req.body.createdBy = req.user.id;
 
+    // Check if promotion code already exists
+    const existingPromotion = await Promotion.findOne({ code: req.body.code?.toUpperCase() });
+    if (existingPromotion) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã khuyến mãi đã tồn tại. Vui lòng chọn mã khác.'
+      });
+    }
+
     const promotion = await Promotion.create(req.body);
 
     res.status(201).json({
@@ -70,6 +103,13 @@ export const createPromotion = async (req, res, next) => {
       promotion
     });
   } catch (error) {
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã khuyến mãi đã tồn tại. Vui lòng chọn mã khác.'
+      });
+    }
     next(error);
   }
 };
@@ -199,6 +239,11 @@ export const validatePromotionCode = async (req, res, next) => {
         code: promotion.code,
         name: promotion.name,
         type: promotion.type,
+        discountType: promotion.type,
+        value: promotion.value,
+        discountValue: promotion.value,
+        maxDiscount: promotion.maxDiscountAmount,
+        maxDiscountAmount: promotion.maxDiscountAmount,
         discount,
         finalAmount: amount - discount
       }

@@ -5,9 +5,20 @@ import {
   confirmPayment,
   getPaymentHistory
 } from '../controllers/payment.controller.js';
+import {
+  createVNPayPayment,
+  verifyVNPayCallback,
+  checkVNPayStatus
+} from '../controllers/vnpay.controller.js';
 
 const router = express.Router();
 
+// VNPay routes
+router.post('/vnpay/create', protect, createVNPayPayment);
+router.get('/vnpay/callback', verifyVNPayCallback); // Public route for VNPay callback
+router.get('/vnpay/status/:bookingId', protect, checkVNPayStatus);
+
+// Standard payment routes
 router.use(protect);
 
 router.post('/create-intent', createPaymentIntent);

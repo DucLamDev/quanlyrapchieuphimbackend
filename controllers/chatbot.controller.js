@@ -198,6 +198,34 @@ const generateResponse = async (intent, entities, context) => {
   }
 };
 
+// Simple fallback when Gemini API is unavailable
+const getSimpleFallbackResponse = async (message, userId) => {
+  const intent = classifyIntent(message);
+  const entities = extractEntities(message);
+  const response = await generateResponse(intent, entities, {});
+  
+  // Extract movie cards if available
+  let movieCards = null;
+  if (response.data && Array.isArray(response.data)) {
+    movieCards = response.data.map(item => ({
+      _id: item.id,
+      title: item.title,
+      rating: item.rating || 0,
+      genres: Array.isArray(item.genres) ? item.genres : (item.genres ? item.genres.split(', ') : [])
+    }));
+  }
+  
+  return {
+    message: response.message,
+    intent: intent,
+    entities: entities,
+    sentiment: { sentiment: 'neutral', frustrationLevel: 0, needsHumanSupport: false },
+    suggestions: response.suggestions || [],
+    movieCards: movieCards,
+    bookingFlow: intent === 'booking'
+  };
+};
+
 // @desc    Send message to chatbot
 // @route   POST /api/chatbot/message
 // @access  Public
@@ -220,8 +248,15 @@ export const sendMessage = async (req, res, next) => {
       entities: {}
     };
 
-    // Use Gemini AI chatbot service
-    const geminiResult = await geminiChatbot.processMessage(message, userId, context);
+    // Use Gemini AI chatbot service with fallback
+    let geminiResult;
+    try {
+      geminiResult = await geminiChatbot.processMessage(message, userId, context);
+    } catch (error) {
+      console.error('Gemini chatbot error, using fallback:', error.message);
+      // Simple rule-based fallback
+      geminiResult = await getSimpleFallbackResponse(message, userId);
+    }
 
     // Update context
     context.lastIntent = geminiResult.intent;
@@ -273,12 +308,13 @@ export const sendMessage = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      response: geminiResult,
-      context: {
-        intent: geminiResult.intent,
-        sentiment: geminiResult.sentiment,
-        entities: geminiResult.entities
-      }
+      message: geminiResult.message || 'Xin lỗi, tôi không hiểu câu hỏi của bạn.',
+      suggestions: geminiResult.suggestions || [],
+      movieCards: geminiResult.movieCards || null,
+      bookingFlow: geminiResult.bookingFlow || false,
+      intent: geminiResult.intent,
+      sentiment: geminiResult.sentiment,
+      entities: geminiResult.entities
     });
   } catch (error) {
     next(error);

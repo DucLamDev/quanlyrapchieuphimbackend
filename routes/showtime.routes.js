@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect, authorize } from '../middleware/auth.middleware.js';
+import { protect, authorize, optionalAuth } from '../middleware/auth.middleware.js';
 import {
   getShowtimes,
   getShowtime,
@@ -12,10 +12,10 @@ import {
 
 const router = express.Router();
 
-// Public routes
-router.get('/', getShowtimes);
+// Public routes with optional auth for staff filtering
+router.get('/', optionalAuth, getShowtimes);
 router.get('/:id', getShowtime);
-router.get('/movie/:movieId', getShowtimesByMovie);
+router.get('/movie/:movieId', optionalAuth, getShowtimesByMovie);
 router.get('/cinema/:cinemaId', getShowtimesByCinema);
 
 // Protected routes (Admin only)

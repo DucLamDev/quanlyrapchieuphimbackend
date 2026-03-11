@@ -46,9 +46,17 @@ export const createBooking = async (req, res, next) => {
       }
     }
 
-    // Check seat availability
+    // Check seat availability with fresh data to prevent race conditions
+    const freshShowtime = await Showtime.findById(showtimeId);
+    if (!freshShowtime) {
+      return res.status(404).json({
+        success: false,
+        message: 'Showtime not found'
+      });
+    }
+
     const requestedSeats = seats.map(s => `${s.row}${s.number}`);
-    const bookedSeatIds = showtime.bookedSeats.map(s => `${s.row}${s.number}`);
+    const bookedSeatIds = (freshShowtime.bookedSeats || []).map(s => `${s.row}${s.number}`);
     const unavailableSeats = requestedSeats.filter(s => bookedSeatIds.includes(s));
 
     if (unavailableSeats.length > 0) {
@@ -59,10 +67,10 @@ export const createBooking = async (req, res, next) => {
       });
     }
 
-    // Calculate total amount
+    // Calculate total amount using showtime prices
     let totalAmount = 0;
     const seatDetails = seats.map(seat => {
-      const price = showtime.price[seat.type];
+      const price = showtime.price[seat.type] || showtime.price.standard || 100000;
       totalAmount += price;
       return { ...seat, price };
     });
@@ -182,7 +190,7 @@ export const createBooking = async (req, res, next) => {
     
     const booking = await Booking.create(bookingData);
 
-    // Update showtime seats - Dùng MongoDB native driver để bypass Mongoose schema validation
+    // Update showtime seats atomically to prevent race conditions
     const seatsToAdd = seatDetails.map(s => ({
       row: String(s.row),
       number: Number(s.number),
@@ -190,15 +198,40 @@ export const createBooking = async (req, res, next) => {
       bookingId: booking._id instanceof mongoose.Types.ObjectId ? booking._id : new mongoose.Types.ObjectId(booking._id)
     }));
     
-    // Update trực tiếp qua MongoDB native driver, bypass Mongoose validation
-    const db = mongoose.connection.db;
-    await db.collection('showtimes').updateOne(
-      { _id: new mongoose.Types.ObjectId(showtimeId) },
+    // Check again for conflicts and update atomically
+    const bookedSeatIdentifiers = seatsToAdd.map(s => `${s.row}${s.number}`);
+    const updateResult = await mongoose.connection.db.collection('showtimes').updateOne(
+      { 
+        _id: new mongoose.Types.ObjectId(showtimeId),
+        bookedSeats: { 
+          $not: { 
+            $elemMatch: { 
+              $or: bookedSeatIdentifiers.map(id => ({
+                $and: [
+                  { row: id.charAt(0) },
+                  { number: parseInt(id.substring(1)) }
+                ]
+              }))
+            } 
+          } 
+        }
+      },
       {
         $push: { bookedSeats: { $each: seatsToAdd } },
         $inc: { availableSeats: -seats.length }
       }
     );
+
+    // If no document was modified, seats were already booked
+    if (updateResult.matchedCount === 0 || updateResult.modifiedCount === 0) {
+      // Delete the booking that was just created
+      await Booking.findByIdAndDelete(booking._id);
+      return res.status(400).json({
+        success: false,
+        message: 'Selected seats are no longer available. Please refresh and try again.',
+        error: 'SEAT_CONFLICT'
+      });
+    }
 
     // Update customer loyalty points (nếu không phải khách vãng lai)
     if (!isWalkInCustomer && customer._id) {
@@ -226,6 +259,19 @@ export const createBooking = async (req, res, next) => {
     // Send confirmation email
     await sendBookingConfirmation(booking, customer);
 
+    // Populate booking data before sending response
+    const populatedBooking = await Booking.findById(booking._id)
+      .populate('userId', 'fullName email phone')
+      .populate('movieId', 'title poster')
+      .populate('cinemaId', 'name')
+      .populate({
+        path: 'showtimeId',
+        populate: [
+          { path: 'movieId', select: 'title poster duration' },
+          { path: 'cinemaId', select: 'name location' }
+        ]
+      });
+
     // Emit real-time update
     const io = req.app.get('io');
     io.to(`showtime-${showtimeId}`).emit('booking-update', {
@@ -236,7 +282,7 @@ export const createBooking = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      booking
+      booking: populatedBooking
     });
   } catch (error) {
     next(error);
@@ -294,13 +340,15 @@ export const getBooking = async (req, res, next) => {
       });
     }
 
-    // Check ownership
-    if (booking.userId._id.toString() !== req.user.id && 
-        !['admin', 'staff'].includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to access this booking'
-      });
+    // Check ownership - allow staff/admin or owner
+    if (!['admin', 'staff'].includes(req.user.role)) {
+      // For customers, check if they own the booking
+      if (!booking.userId || booking.userId._id.toString() !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Not authorized to access this booking'
+        });
+      }
     }
 
     res.status(200).json({
@@ -379,7 +427,17 @@ export const cancelBooking = async (req, res, next) => {
 // @access  Private (Staff/Admin)
 export const checkInBooking = async (req, res, next) => {
   try {
-    const booking = await Booking.findById(req.params.id);
+    const booking = await Booking.findById(req.params.id)
+      .populate('userId', 'fullName email phone')
+      .populate('movieId', 'title poster')
+      .populate('cinemaId', 'name')
+      .populate({
+        path: 'showtimeId',
+        populate: [
+          { path: 'movieId', select: 'title poster duration' },
+          { path: 'cinemaId', select: 'name location' }
+        ]
+      });
 
     if (!booking) {
       return res.status(404).json({
@@ -391,11 +449,19 @@ export const checkInBooking = async (req, res, next) => {
     if (booking.status === 'used') {
       return res.status(400).json({
         success: false,
-        message: 'Booking already used'
+        message: 'Booking already checked in'
+      });
+    }
+
+    if (booking.status !== 'confirmed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only confirmed bookings can be checked in'
       });
     }
 
     booking.status = 'used';
+    booking.isCheckedIn = true;
     booking.checkInTime = Date.now();
     await booking.save();
 
@@ -426,10 +492,23 @@ export const getAllBookings = async (req, res, next) => {
       query.createdAt = { $gte: startDate, $lt: endDate };
     }
 
+    // Nếu là staff, chỉ hiển thị booking của rạp họ
+    const user = await User.findById(req.user.id);
+    if (user.role === 'staff' && user.cinemaId) {
+      query.cinemaId = user.cinemaId;
+    }
+
     const bookings = await Booking.find(query)
       .populate('userId', 'fullName email phone')
       .populate('movieId', 'title poster')
       .populate('cinemaId', 'name')
+      .populate({
+        path: 'showtimeId',
+        populate: [
+          { path: 'movieId', select: 'title poster duration' },
+          { path: 'cinemaId', select: 'name location' }
+        ]
+      })
       .sort('-createdAt')
       .limit(limit * 1)
       .skip((page - 1) * limit);

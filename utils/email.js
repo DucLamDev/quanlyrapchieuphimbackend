@@ -1,16 +1,29 @@
 import nodemailer from 'nodemailer';
 import { logger } from './logger.js';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
-  }
-});
+let transporter = null;
+
+if (process.env.EMAIL_HOST && process.env.EMAIL_USER && process.env.EMAIL_PASSWORD) {
+  transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT || 587,
+    secure: false,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    }
+  });
+  logger.info('✅ Email service configured');
+} else {
+  logger.warn('⚠️  Email service not configured - emails will not be sent');
+}
 
 export const sendEmail = async (options) => {
+  if (!transporter) {
+    logger.warn(`Email not sent to ${options.email} - email service not configured`);
+    return true;
+  }
+
   try {
     const mailOptions = {
       from: `Cinema Management <${process.env.EMAIL_USER}>`,

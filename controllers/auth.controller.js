@@ -145,7 +145,7 @@ export const logout = async (req, res) => {
 // @access  Private
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate('cinemaId', 'name location phone email');
     
     res.status(200).json({
       success: true,

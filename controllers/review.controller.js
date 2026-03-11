@@ -1,6 +1,7 @@
 import Review from '../models/Review.model.js';
 import Movie from '../models/Movie.model.js';
 import Booking from '../models/Booking.model.js';
+import User from '../models/User.model.js';
 import Sentiment from 'sentiment';
 
 const sentiment = new Sentiment();
@@ -57,6 +58,57 @@ export const getReviews = async (req, res, next) => {
   }
 };
 
+// @desc    Check if user can review a movie
+// @route   GET /api/reviews/can-review/:movieId
+// @access  Private
+export const canReviewMovie = async (req, res, next) => {
+  try {
+    const { movieId } = req.params;
+
+    // Check if user already reviewed this movie
+    const existingReview = await Review.findOne({
+      userId: req.user.id,
+      movieId
+    });
+
+    if (existingReview) {
+      return res.status(200).json({
+        success: true,
+        canReview: false,
+        reason: 'already_reviewed',
+        message: 'Bạn đã đánh giá phim này rồi'
+      });
+    }
+
+    // Check if user has a confirmed/used booking for this movie
+    const booking = await Booking.findOne({
+      userId: req.user.id,
+      movieId,
+      $or: [
+        { status: 'used' },
+        { status: 'confirmed', paymentStatus: { $in: ['completed', 'paid'] } }
+      ]
+    });
+
+    if (!booking) {
+      return res.status(200).json({
+        success: true,
+        canReview: false,
+        reason: 'no_purchase',
+        message: 'Bạn cần mua vé xem phim này trước khi đánh giá'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      canReview: true,
+      message: 'Bạn có thể đánh giá phim này'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Create review
 // @route   POST /api/reviews
 // @access  Private
@@ -73,16 +125,26 @@ export const createReview = async (req, res, next) => {
     if (existingReview) {
       return res.status(400).json({
         success: false,
-        message: 'You have already reviewed this movie'
+        message: 'Bạn đã đánh giá phim này rồi'
       });
     }
 
-    // Check if user has watched the movie
+    // REQUIRED: Check if user has purchased ticket for this movie
     const booking = await Booking.findOne({
       userId: req.user.id,
       movieId,
-      status: 'used'
+      $or: [
+        { status: 'used' },
+        { status: 'confirmed', paymentStatus: { $in: ['completed', 'paid'] } }
+      ]
     });
+
+    if (!booking) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn cần mua vé xem phim này trước khi đánh giá'
+      });
+    }
 
     // Analyze sentiment
     const sentimentResult = sentiment.analyze(content);
@@ -99,7 +161,7 @@ export const createReview = async (req, res, next) => {
         score: sentimentResult.score,
         label: sentimentLabel
       },
-      isVerifiedPurchase: !!booking
+      isVerifiedPurchase: true // Always true now since we require purchase
     });
 
     // Update movie rating
@@ -260,6 +322,173 @@ export const likeReview = async (req, res, next) => {
       success: true,
       likes: review.likes.length,
       dislikes: review.dislikes.length
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get all reviews (Admin)
+// @route   GET /api/reviews
+// @access  Private/Admin
+export const getAllReviews = async (req, res, next) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 50, 
+      sort = '-createdAt', 
+      sentiment: sentimentFilter,
+      status,
+      movieId,
+      search 
+    } = req.query;
+
+    const query = {};
+    
+    if (sentimentFilter && sentimentFilter !== 'all') {
+      query['sentiment.label'] = sentimentFilter;
+    }
+    
+    if (status && status !== 'all') {
+      query.moderationStatus = status;
+    }
+    
+    if (movieId) {
+      query.movieId = movieId;
+    }
+
+    const reviews = await Review.find(query)
+      .populate('userId', 'fullName email avatar')
+      .populate('movieId', 'title poster')
+      .sort(sort)
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .lean();
+
+    const count = await Review.countDocuments(query);
+    
+    // Get stats
+    const stats = await Review.aggregate([
+      {
+        $group: {
+          _id: '$moderationStatus',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    const statsObj = {
+      total: count,
+      pending: 0,
+      approved: 0,
+      rejected: 0
+    };
+    
+    stats.forEach(s => {
+      statsObj[s._id] = s.count;
+    });
+
+    res.status(200).json({
+      success: true,
+      count: reviews.length,
+      total: count,
+      totalPages: Math.ceil(count / limit),
+      currentPage: parseInt(page),
+      stats: statsObj,
+      data: reviews
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Moderate review (Admin)
+// @route   PUT /api/reviews/:id/moderate
+// @access  Private/Admin
+export const moderateReview = async (req, res, next) => {
+  try {
+    const { status, reason } = req.body;
+    
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trạng thái không hợp lệ'
+      });
+    }
+
+    const review = await Review.findById(req.params.id);
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đánh giá'
+      });
+    }
+
+    review.moderationStatus = status;
+    review.moderationReason = reason || '';
+    review.isVisible = status === 'approved';
+    
+    await review.save();
+
+    // Update movie rating
+    await updateMovieRating(review.movieId);
+
+    res.status(200).json({
+      success: true,
+      message: `Đánh giá đã được ${status === 'approved' ? 'phê duyệt' : status === 'rejected' ? 'từ chối' : 'đặt chờ duyệt'}`,
+      review
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Toggle review visibility (Admin)
+// @route   PUT /api/reviews/:id/visibility
+// @access  Private/Admin
+export const toggleReviewVisibility = async (req, res, next) => {
+  try {
+    const review = await Review.findById(req.params.id);
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy đánh giá'
+      });
+    }
+
+    review.isVisible = !review.isVisible;
+    await review.save();
+
+    // Update movie rating
+    await updateMovieRating(review.movieId);
+
+    res.status(200).json({
+      success: true,
+      message: review.isVisible ? 'Đánh giá đã được hiển thị' : 'Đánh giá đã được ẩn',
+      isVisible: review.isVisible
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get user's review for a movie
+// @route   GET /api/reviews/my-review/:movieId
+// @access  Private
+export const getMyReview = async (req, res, next) => {
+  try {
+    const { movieId } = req.params;
+
+    const review = await Review.findOne({
+      userId: req.user.id,
+      movieId
+    }).populate('userId', 'fullName avatar');
+
+    res.status(200).json({
+      success: true,
+      review: review || null
     });
   } catch (error) {
     next(error);

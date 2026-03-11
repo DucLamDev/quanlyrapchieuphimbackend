@@ -49,15 +49,27 @@ const showtimeSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  bookedSeats: [{
-    row: String,
-    number: Number,
-    type: String,
-    bookingId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Booking'
-    }
-  }],
+  bookedSeats: {
+    type: [{
+      row: {
+        type: String,
+        required: true
+      },
+      number: {
+        type: Number,
+        required: true
+      },
+      type: {
+        type: String,
+        required: true
+      },
+      bookingId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Booking'
+      }
+    }],
+    default: []
+  },
   crowdPrediction: {
     level: {
       type: String,

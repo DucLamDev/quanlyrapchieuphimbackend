@@ -55,7 +55,7 @@ const bookingSchema = new mongoose.Schema({
   discount: {
     amount: Number,
     code: String,
-    type: String
+    type: { type: String }
   },
   loyaltyPointsUsed: {
     type: Number,
@@ -71,17 +71,27 @@ const bookingSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded'],
+    enum: ['pending', 'completed', 'failed', 'refunded', 'paid'],
     default: 'pending'
   },
   paymentMethod: {
     type: String,
-    enum: ['credit-card', 'debit-card', 'e-wallet', 'cash', 'loyalty-points']
+    enum: ['credit-card', 'debit-card', 'e-wallet', 'cash', 'loyalty-points', 'vnpay', 'momo', 'zalopay']
   },
   paymentDetails: {
     transactionId: String,
     paymentTime: Date,
     provider: String
+  },
+  paymentDate: {
+    type: Date
+  },
+  vnpayData: {
+    transactionId: String,
+    orderId: String,
+    amount: Number,
+    bankCode: String,
+    responseCode: String
   },
   status: {
     type: String,
@@ -103,6 +113,10 @@ const bookingSchema = new mongoose.Schema({
     },
     role: String,
     name: String
+  },
+  isCheckedIn: {
+    type: Boolean,
+    default: false
   },
   checkInTime: Date,
   cancellationReason: String,

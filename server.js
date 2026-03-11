@@ -24,10 +24,14 @@ import recommendationRoutes from './routes/recommendation.routes.js';
 import crowdPredictionRoutes from './routes/crowdPrediction.routes.js';
 import chatbotRoutes from './routes/chatbot.routes.js';
 import promotionRoutes from './routes/promotion.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 // Import middleware
 import { errorHandler } from './middleware/error.middleware.js';
 import { logger } from './utils/logger.js';
+
+// Import cron jobs
+import { initializeShowtimeCronJobs } from './jobs/showtimeCron.js';
 
 // Load environment variables
 dotenv.config();
@@ -36,7 +40,8 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: 'https://quanlyrapchieuphim-r6mr.vercel.app',
+    origin: 'http://localhost:3000',
     credentials: true
   }
 });
@@ -45,7 +50,9 @@ const io = new Server(httpServer, {
 app.use(helmet()); // Security headers
 app.use(compression()); // Compress responses
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: 'https://quanlyrapchieuphim.vercel.app',
+  origin: 'https://quanlyrapchieuphim-r6mr.vercel.app',
+  origin: 'http://localhost:3000',
   credentials: true
 }));
 app.use(express.json());
@@ -75,6 +82,7 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/crowd-prediction', crowdPredictionRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/promotions', promotionRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -134,6 +142,9 @@ const PORT = process.env.PORT || 5000;
 connectDB().then(() => {
   httpServer.listen(PORT, () => {
     logger.info(`Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+    
+    // Initialize cron jobs
+    initializeShowtimeCronJobs();
   });
 });
 

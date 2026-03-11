@@ -1,4 +1,50 @@
 import User from '../models/User.model.js';
+import bcrypt from 'bcryptjs';
+
+// @desc    Create new user
+// @route   POST /api/users
+// @access  Private/Admin
+export const createUser = async (req, res, next) => {
+  try {
+    const { email, password, fullName, phone, role = 'customer' } = req.body;
+
+    // Check if user exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'User with this email already exists'
+      });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create user
+    const user = await User.create({
+      email,
+      password: hashedPassword,
+      fullName,
+      phone,
+      role,
+      isActive: true
+    });
+
+    res.status(201).json({
+      success: true,
+      user: {
+        _id: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        phone: user.phone,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -18,6 +64,7 @@ export const getAllUsers = async (req, res, next) => {
 
     const users = await User.find(query)
       .select('-password')
+      .populate('cinemaId', 'name location')
       .sort('-createdAt')
       .limit(limit * 1)
       .skip((page - 1) * limit);
